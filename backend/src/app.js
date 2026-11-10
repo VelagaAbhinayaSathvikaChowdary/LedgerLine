@@ -2,7 +2,8 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 require("dotenv").config();
-
+const transactionRoutes = require("./routes/transactionRoutes");
+const authRoutes = require("./routes/authRoutes");
 const app = express();
 
 // Middlewares
@@ -14,5 +15,9 @@ app.get("/", (req, res) => {
         message: "Welcome to LedgerLine API"
     });
 });
+
+// Transaction APIs
+app.use("/api/transactions", transactionRoutes);
+app.use("/api/auth", authRoutes);
 
 module.exports = app;
