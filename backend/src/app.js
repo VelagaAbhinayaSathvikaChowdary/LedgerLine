@@ -6,6 +6,7 @@ if (process.env.NODE_ENV !== "test") {
 }
 const transactionRoutes = require("./routes/transactionRoutes");
 const authRoutes = require("./routes/authRoutes");
+const accountRoutes = require("./routes/accountRoutes");
 const app = express();
 
 // Middlewares
@@ -21,5 +22,6 @@ app.get("/", (req, res) => {
 // Transaction APIs
 app.use("/api/transactions", transactionRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/accounts", accountRoutes);
 
 module.exports = app;
