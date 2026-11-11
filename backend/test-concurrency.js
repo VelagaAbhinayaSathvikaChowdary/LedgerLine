@@ -7,20 +7,32 @@ const pool = require("./src/config/db");
 async function testConcurrentWithdrawals() {
     console.log("Starting concurrent withdrawal test...\n");
 
-    const request1 = withdrawMoney({
-        accountId: 2,
-        userId: 2,
-        amount: 800,
-        idempotencyKey: "CONCURRENT-WITHDRAW-001"
-    });
+    // const request1 = withdrawMoney({
+    //     accountId: 2,
+    //     userId: 2,
+    //     amount: 800,
+    //     idempotencyKey: "CONCURRENT-WITHDRAW-001"
+    // });
 
-    const request2 = withdrawMoney({
-        accountId: 2,
-        userId: 2,
-        amount: 800,
-        idempotencyKey: "CONCURRENT-WITHDRAW-002"
-    });
+    // const request2 = withdrawMoney({
+    //     accountId: 2,
+    //     userId: 2,
+    //     amount: 800,
+    //     idempotencyKey: "CONCURRENT-WITHDRAW-002"
+    // });
+const request1 = withdrawMoney({
+    accountId: 2,
+    userId: 2,
+    amount: "200",
+    idempotencyKey: "CONCURRENT-TEST-103"
+});
 
+const request2 = withdrawMoney({
+    accountId: 2,
+    userId: 2,
+    amount: "200",
+    idempotencyKey: "CONCURRENT-TEST-104"
+});
     const results = await Promise.allSettled([
         request1,
         request2

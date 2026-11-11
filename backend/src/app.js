@@ -1,7 +1,9 @@
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
-require("dotenv").config();
+if (process.env.NODE_ENV !== "test") {
+    require("dotenv").config();
+}
 const transactionRoutes = require("./routes/transactionRoutes");
 const authRoutes = require("./routes/authRoutes");
 const app = express();
