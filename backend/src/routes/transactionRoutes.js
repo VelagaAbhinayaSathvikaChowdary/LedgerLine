@@ -1,4 +1,5 @@
 const express = require("express");
+const { getLedgerEntries } = require("../controllers/ledgerController");
 const { withdraw } = require("../controllers/transactionController");
 const { deposit } = require("../controllers/depositController");
 const { transfer } = require("../controllers/transferController");
@@ -13,4 +14,5 @@ router.post(
     deposit
 );
 router.post("/transfer", authenticateToken, transfer);
+router.get("/ledger", authenticateToken, getLedgerEntries);
 module.exports = router;

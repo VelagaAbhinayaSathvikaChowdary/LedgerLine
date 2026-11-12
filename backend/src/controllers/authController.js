@@ -15,7 +15,7 @@ async function login(req, res) {
         }
 
         const result = await pool.query(
-            `SELECT id, name, email, password_hash, role
+            `SELECT id, name, email, password_hash, role, status
              FROM users
              WHERE email = $1`,
             [email]
@@ -41,7 +41,14 @@ async function login(req, res) {
                 message: "Invalid email or password"
             });
         }
-
+        if (user.status !== "APPROVED") {
+    return res.status(403).json({
+        success: false,
+        message: user.status === "PENDING"
+            ? "Your registration is waiting for admin approval."
+            : "Your registration has been rejected."
+    });
+}
         const token = jwt.sign(
             {
                 id: user.id,
@@ -73,4 +80,56 @@ async function login(req, res) {
     }
 }
 
-module.exports = { login };
+async function register(req, res) {
+    try {
+        const { name, email, password } = req.body;
+
+        if (!name || !email || !password) {
+            return res.status(400).json({
+                success: false,
+                message: "Name, email and password are required"
+            });
+        }
+
+        if (password.length < 8) {
+            return res.status(400).json({
+                success: false,
+                message: "Password must be at least 8 characters"
+            });
+        }
+
+        const existingUser = await pool.query(
+            "SELECT id FROM users WHERE email = $1",
+            [email]
+        );
+
+        if (existingUser.rows.length > 0) {
+            return res.status(409).json({
+                success: false,
+                message: "Email is already registered"
+            });
+        }
+
+        const passwordHash = await bcrypt.hash(password, 10);
+
+        await pool.query(
+            `INSERT INTO users (name, email, password_hash, role, status)
+             VALUES ($1, $2, $3, 'HOLDER', 'PENDING')`,
+            [name, email, passwordHash]
+        );
+
+        return res.status(201).json({
+            success: true,
+            message: "Registration successful. Waiting for admin approval."
+        });
+
+    } catch (error) {
+        console.error("Registration error:", error.message);
+
+        return res.status(500).json({
+            success: false,
+            message: "Registration failed"
+        });
+    }
+}
+module.exports = { login, register };

@@ -498,3 +498,110 @@
   border-radius: 7px;
   cursor: pointer;
 }
+
+/* Transaction History */
+.history-section {
+  margin-top: 35px;
+  padding: 25px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  padding: 18px 0;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.history-item h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+
+.history-item p {
+  margin: 0 0 5px;
+  color: #666666;
+  font-size: 13px;
+}
+
+.history-item small {
+  color: #888888;
+  font-size: 12px;
+}
+
+.credit-amount {
+  color: #16834a;
+  white-space: nowrap;
+}
+
+.debit-amount {
+  color: #d14343;
+  white-space: nowrap;
+}
+
+.history-section > p {
+  color: #777777;
+}
+.approval-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.approve-btn,
+.reject-btn {
+  padding: 9px 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.approve-btn {
+  background: #16834a;
+  color: white;
+}
+
+.reject-btn {
+  background: #d14343;
+  color: white;
+}
+
+.approve-btn:disabled,
+.reject-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.login-card .link-button {
+  display: inline;
+  width: auto;
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: none;
+  color: #159b78;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.login-card .link-button:hover {
+  background: none;
+  text-decoration: underline;
+  box-shadow: none;
+}

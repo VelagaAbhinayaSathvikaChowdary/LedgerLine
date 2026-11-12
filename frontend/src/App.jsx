@@ -7,13 +7,26 @@ const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 function App() {
   const [activeAction, setActiveAction] = useState(null);
 const [amount, setAmount] = useState("");
+const [ledgerEntries, setLedgerEntries] = useState([]);
+const [ledgerLoading, setLedgerLoading] = useState(false);
 const [toAccountId, setToAccountId] = useState("");
+const [registerError, setRegisterError] = useState(false);
 const [depositAccountId, setDepositAccountId] = useState("");
 const [transactionLoading, setTransactionLoading] = useState(false);
 const [transactionError, setTransactionError] = useState("");
 const [transactionSuccess, setTransactionSuccess] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isRegistering, setIsRegistering] = useState(false);
+const [registerName, setRegisterName] = useState("");
+const [registerEmail, setRegisterEmail] = useState("");
+const [registerPassword, setRegisterPassword] = useState("");
+const [registerLoading, setRegisterLoading] = useState(false);
+const [registerMessage, setRegisterMessage] = useState("");
+
+const [pendingUsers, setPendingUsers] = useState([]);
+const [approvalLoading, setApprovalLoading] = useState(false);
+const [approvalMessage, setApprovalMessage] = useState("");
   const [user, setUser] = useState(
     JSON.parse(localStorage.getItem("user") || "null")
   );
@@ -40,11 +53,101 @@ const [transactionSuccess, setTransactionSuccess] = useState("");
       );
     }
   };
+  
+const fetchLedger = async (token) => {
+  try {
+    setLedgerLoading(true);
+
+    const response = await axios.get(
+      `${API}/api/transactions/ledger`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    setLedgerEntries(response.data.entries || []);
+  } catch (err) {
+    console.error(
+      "Ledger API error:",
+      err.response?.data || err.message
+    );
+    setLedgerEntries([]);
+  } finally {
+    setLedgerLoading(false);
+  }
+};
+const fetchPendingUsers = async (token) => {
+  try {
+    const response = await axios.get(`${API}/api/admin/pending-users`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setPendingUsers(response.data.users);
+  } catch (error) {
+    console.error("Fetch pending users error:", error);
+  }
+};
+
+const handleRegister = async (e) => {
+  e.preventDefault();
+  setRegisterLoading(true);
+  setRegisterMessage("");
+
+  try {
+    const response = await axios.post(`${API}/api/auth/register`, {
+      name: registerName,
+      email: registerEmail,
+      password: registerPassword,
+    });
+
+    setRegisterMessage(response.data.message);
+    setRegisterName("");
+    setRegisterEmail("");
+    setRegisterPassword("");
+  } catch (error) {
+    setRegisterMessage(
+      error.response?.data?.message || "Registration failed. Please try again."
+    );
+  } finally {
+    setRegisterLoading(false);
+  }
+};
+const handleUserDecision = async (userId, decision) => {
+  setApprovalLoading(true);
+  setApprovalMessage("");
+
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await axios.put(
+      `${API}/api/admin/${decision}/${userId}`,
+      {},
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    setApprovalMessage(response.data.message);
+    await fetchPendingUsers(token);
+    await fetchAccounts(token);
+  } catch (error) {
+    setApprovalMessage(
+      error.response?.data?.message || "Unable to update registration."
+    );
+  } finally {
+    setApprovalLoading(false);
+  }
+};
   useEffect(() => {
   const token = localStorage.getItem("token");
 
   if (user && token) {
     fetchAccounts(token);
+    fetchLedger(token);
+    if (user.role === "ADMIN") {
+  fetchPendingUsers(token);
+}
   }
 }, [user]);
 const handleTransaction = async (e) => {
@@ -198,20 +301,73 @@ if (activeAction === "transfer") {
           {accountError && <p className="form-error">{accountError}</p>}
 
           {user.role === "ADMIN" ? (
-  <section className="action-grid">
-    <button
-      className="action-card"
-      onClick={() => {
-        setActiveAction("deposit");
-        setTransactionError("");
-        setTransactionSuccess("");
-      }}
-    >
-      <div className="action-icon">↓</div>
-      <h3>Deposit Funds</h3>
-      <p>Add money to a holder's account.</p>
-    </button>
-  </section>
+  <>
+    <section className="action-grid">
+      <button
+        className="action-card"
+        onClick={() => {
+          setActiveAction("deposit");
+          setTransactionError("");
+          setTransactionSuccess("");
+        }}
+      >
+        <div className="action-icon">↓</div>
+        <h3>Deposit Funds</h3>
+        <p>Add money to a holder's account.</p>
+      </button>
+    </section>
+
+    <section className="history-section">
+      <h2 className="section-heading">Pending Registrations</h2>
+
+      {approvalMessage && (
+        <p className="form-success">{approvalMessage}</p>
+      )}
+
+      {pendingUsers.length === 0 ? (
+        <p className="empty-message">
+          No pending registrations.
+        </p>
+      ) : (
+        <div className="history-list">
+          {pendingUsers.map((pendingUser) => (
+            <div className="history-item" key={pendingUser.id}>
+              <div>
+                <h3>{pendingUser.name}</h3>
+                <p>{pendingUser.email}</p>
+                <small>
+                  Registered:{" "}
+                  {new Date(pendingUser.created_at).toLocaleDateString("en-IN")}
+                </small>
+              </div>
+
+              <div className="approval-actions">
+                <button
+                  className="approve-btn"
+                  disabled={approvalLoading}
+                  onClick={() =>
+                    handleUserDecision(pendingUser.id, "approve")
+                  }
+                >
+                  Approve
+                </button>
+
+                <button
+                  className="reject-btn"
+                  disabled={approvalLoading}
+                  onClick={() =>
+                    handleUserDecision(pendingUser.id, "reject")
+                  }
+                >
+                  Reject
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  </>
 ) : account ? (
   <>
     <section className="balance-card">
@@ -261,6 +417,47 @@ if (activeAction === "transfer") {
         <p>Move money between accounts.</p>
       </button>
     </div>
+
+<section className="history-section">
+  <h2 className="section-heading">Transaction History</h2>
+
+  {ledgerLoading ? (
+    <p>Loading transactions...</p>
+  ) : ledgerEntries.length === 0 ? (
+    <p className="empty-message">No transactions found.</p>
+  ) : (
+    <div className="history-list">
+      {ledgerEntries.map((entry) => (
+        <div className="history-item" key={entry.id}>
+          <div>
+            <h3>
+              {entry.entry_type === "CREDIT"
+                ? "Money Received"
+                : "Money Sent"}
+            </h3>
+            <p>{entry.account_number}</p>
+            <small>
+              {new Date(entry.created_at).toLocaleString("en-IN")}
+            </small>
+          </div>
+
+          <strong className={
+            entry.entry_type === "CREDIT"
+              ? "credit-amount"
+              : "debit-amount"
+          }>
+            {entry.entry_type === "CREDIT" ? "+" : "-"}₹
+            {Number(entry.amount).toLocaleString("en-IN", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </strong>
+        </div>
+      ))}
+    </div>
+  )}
+</section>
+
   </>
 ) : (
   !accountError && (
@@ -399,48 +596,121 @@ if (activeAction === "transfer") {
         <p className="left-footer">LEDGERLINE © 2026</p>
       </div>
 
-      <div className="login-right">
-        <form className="login-card" onSubmit={handleLogin}>
-          <div className="mobile-brand">LEDGERLINE</div>
-          <p className="form-label">WELCOME BACK</p>
-          <h2>Sign in to your account</h2>
-          <p className="subtitle">
-  {activeAction === "transfer"
-    ? "Enter the destination account ID and amount."
-    : activeAction === "deposit"
-    ? "Enter the holder account ID and deposit amount."
-    : "Enter the amount for this transaction."}
+      
+<div className="login-right">
+  {isRegistering ? (
+    <form className="login-card" onSubmit={handleRegister}>
+      <div className="mobile-brand">LEDGERLINE</div>
+      <p className="form-label">JOIN LEDGERLINE</p>
+      <h2>Create your account</h2>
+      <p className="subtitle">
+        Register as a holder. Your account will be created after admin approval.
+      </p>
+
+      <label>Full name</label>
+      <input
+        type="text"
+        placeholder="Your full name"
+        value={registerName}
+        onChange={(e) => setRegisterName(e.target.value)}
+        required
+      />
+
+      <label>Email address</label>
+      <input
+        type="email"
+        placeholder="you@example.com"
+        value={registerEmail}
+        onChange={(e) => setRegisterEmail(e.target.value)}
+        required
+      />
+
+      <label>Password</label>
+      <input
+        type="password"
+        placeholder="At least 8 characters"
+        value={registerPassword}
+        onChange={(e) => setRegisterPassword(e.target.value)}
+        minLength={8}
+        required
+      />
+
+      {registerMessage && (
+        <p className="form-success">{registerMessage}</p>
+      )}
+
+      <button type="submit" disabled={registerLoading}>
+        {registerLoading ? "Creating account..." : "Create Account →"}
+      </button>
+
+      <p className="security-note">
+  Already registered?{" "}
+  <button
+    type="button"
+    className="link-button"
+    onClick={() => {
+      setIsRegistering(false);
+      setRegisterMessage("");
+    }}
+  >
+    Sign in
+  </button>
 </p>
+    </form>
+  ) : (
+    <form className="login-card" onSubmit={handleLogin}>
+      <div className="mobile-brand">LEDGERLINE</div>
+      <p className="form-label">WELCOME BACK</p>
+      <h2>Sign in to your account</h2>
+      <p className="subtitle">
+        Enter your registered email and password.
+      </p>
 
-          <label>Email address</label>
-          <input
-            type="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+      <label>Email address</label>
+      <input
+        type="email"
+        placeholder="you@example.com"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+      />
 
-          <label>Password</label>
-          <input
-            type="password"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+      <label>Password</label>
+      <input
+        type="password"
+        placeholder="Enter your password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        required
+      />
 
-          {error && <p className="form-error">{error}</p>}
+      {error && <p className="form-error">{error}</p>}
 
-          <button type="submit" disabled={loading}>
-            {loading ? "Signing in..." : "Sign in →"}
-          </button>
+      <button type="submit" disabled={loading}>
+        {loading ? "Signing in..." : "Sign in →"}
+      </button>
 
-          <p className="security-note">
-            🔒 Your financial data is protected.
-          </p>
-        </form>
-      </div>
+      <p className="security-note">
+        🔒 Your financial data is protected.
+      </p>
+
+      <p className="security-note">
+  New to LedgerLine?{" "}
+  <button
+    type="button"
+    className="link-button"
+    onClick={() => {
+      setIsRegistering(true);
+      setError("");
+    }}
+  >
+    Create Account
+  </button>
+</p>
+    </form>
+  )}
+</div>
+
     </div>
   );
 }
